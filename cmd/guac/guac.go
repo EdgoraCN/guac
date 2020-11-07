@@ -57,6 +57,23 @@ func main() {
 		fmt.Println(err)
 	}
 }
+func createNewSetting(config *guac.Config, query url.Values) {
+	config.Protocol = query.Get("scheme")
+	config.Parameters = map[string]string{}
+	for k, v := range query {
+		config.Parameters[k] = v[0]
+	}
+	guac.AddConn(config.Parameters)
+}
+
+func readNewSetting(config *guac.Config, query url.Values) {
+	config.Protocol = query.Get("scheme")
+	config.Parameters = map[string]string{}
+	for k, v := range query {
+		config.Parameters[k] = v[0]
+	}
+	guac.AddConn(config.Parameters)
+}
 
 // DemoDoConnect creates the tunnel to the remote machine (via guacd)
 func DemoDoConnect(request *http.Request) (guac.Tunnel, error) {
@@ -86,17 +103,14 @@ func DemoDoConnect(request *http.Request) (guac.Tunnel, error) {
 		if connSeting != nil {
 			config.Protocol = connSeting["scheme"]
 			config.Parameters = guac.GetConn(query.Get("id"))
-		}
-		if connSeting["guacd"] != "" {
-			guacdAddress = connSeting["guacd"]
+			if connSeting["guacd"] != "" {
+				guacdAddress = connSeting["guacd"]
+			}
+		} else {
+			createNewSetting(config, query)
 		}
 	} else {
-		config.Protocol = query.Get("scheme")
-		config.Parameters = map[string]string{}
-		for k, v := range query {
-			config.Parameters[k] = v[0]
-		}
-		guac.AddConn(config.Parameters)
+		createNewSetting(config, query)
 	}
 	if guac.GetSetting().Guacd.Override && query.Get("guacd") != "" {
 		guacdAddress = query.Get("guacd")
