@@ -1,0 +1,30 @@
+guacd:
+  address: 127.0.0.1:4822
+  override: true
+server:
+  api:
+    ids: true
+    list: true
+    read: true
+    delete: true
+    update: true
+  auth:
+    basic:
+      username: ""
+      password: guac
+      realm: Guac Server
+    header:
+      name: ""
+      values:
+      - admin
+      - user
+  static:
+    path: ./static
+conns:
+- hostname: 192.168.1.1
+  id: ssh-192.168.1.1-22-user
+  ignore-cert: "true"
+  password: "111222"
+  port: "22"
+  scheme: ssh
+  username: user

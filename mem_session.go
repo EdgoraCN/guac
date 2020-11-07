@@ -1,8 +1,11 @@
 package guac
 
 import (
+	"encoding/json"
 	"net/http"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 // MemorySessionStore is a simple in-memory store of connected sessions that is used by
@@ -54,4 +57,31 @@ func (s *MemorySessionStore) Delete(id string, req *http.Request, tunnel Tunnel)
 	}
 	s.ConnIds[id]--
 	return
+}
+
+// HandleSession handle session
+func (s *MemorySessionStore) HandleSession(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	s.RLock()
+	defer s.RUnlock()
+
+	type ConnIds struct {
+		Uuid string `json:"uuid"`
+		Num  int    `json:"num"`
+	}
+
+	connIds := make([]*ConnIds, len(s.ConnIds))
+
+	i := 0
+	for id, num := range s.ConnIds {
+		connIds[i] = &ConnIds{
+			Uuid: id,
+			Num:  num,
+		}
+	}
+
+	if err := json.NewEncoder(w).Encode(connIds); err != nil {
+		logrus.Error(err)
+	}
 }

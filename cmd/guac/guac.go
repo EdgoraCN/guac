@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -17,41 +16,32 @@ func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	servlet := guac.NewServer(DemoDoConnect)
+	authServlet := guac.NewAuthManager(servlet)
 	wsServer := guac.NewWebsocketServer(DemoDoConnect)
+	authWsServer := guac.NewAuthManager(wsServer)
 
 	sessions := guac.NewMemorySessionStore()
 	wsServer.OnConnect = sessions.Add
 	wsServer.OnDisconnect = sessions.Delete
 
+	setting := guac.GetSetting()
+
+	authSetting := guac.NewAuthManager(setting)
+
 	mux := http.NewServeMux()
-	mux.Handle("/tunnel", servlet)
-	mux.Handle("/tunnel/", servlet)
-	mux.Handle("/websocket-tunnel", wsServer)
-	mux.HandleFunc("/sessions/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+	mux.Handle("/tunnel", authServlet)
+	mux.Handle("/tunnel/", authServlet)
+	mux.Handle("/websocket-tunnel", authWsServer)
+	authSessionHandle := guac.NewAuthManagerWithFunc(sessions.HandleSession)
+	mux.HandleFunc("/sessions/", authSessionHandle.ServeHTTP)
 
-		sessions.RLock()
-		defer sessions.RUnlock()
+	fs := http.FileServer(http.Dir(setting.Server.Static.Path))
 
-		type ConnIds struct {
-			Uuid string `json:"uuid"`
-			Num  int    `json:"num"`
-		}
+	authStaticHandler := guac.NewAuthManager(http.StripPrefix("/", fs))
 
-		connIds := make([]*ConnIds, len(sessions.ConnIds))
+	mux.Handle("/", authStaticHandler)
 
-		i := 0
-		for id, num := range sessions.ConnIds {
-			connIds[i] = &ConnIds{
-				Uuid: id,
-				Num:  num,
-			}
-		}
-
-		if err := json.NewEncoder(w).Encode(connIds); err != nil {
-			logrus.Error(err)
-		}
-	})
+	mux.Handle("/config", authSetting)
 
 	logrus.Println("Serving on http://127.0.0.1:4567")
 
@@ -71,7 +61,6 @@ func main() {
 // DemoDoConnect creates the tunnel to the remote machine (via guacd)
 func DemoDoConnect(request *http.Request) (guac.Tunnel, error) {
 	config := guac.NewGuacamoleConfiguration()
-
 	var query url.Values
 	if request.URL.RawQuery == "connect" {
 		// http tunnel uses the body to pass parameters
@@ -91,13 +80,27 @@ func DemoDoConnect(request *http.Request) (guac.Tunnel, error) {
 	} else {
 		query = request.URL.Query()
 	}
-
-	config.Protocol = query.Get("scheme")
-	config.Parameters = map[string]string{}
-	for k, v := range query {
-		config.Parameters[k] = v[0]
+	var guacdAddress = guac.GetGuacd()
+	if query.Get("id") != "" {
+		var connSeting = guac.GetConn(query.Get("id"))
+		if connSeting != nil {
+			config.Protocol = connSeting["scheme"]
+			config.Parameters = guac.GetConn(query.Get("id"))
+		}
+		if connSeting["guacd"] != "" {
+			guacdAddress = connSeting["guacd"]
+		}
+	} else {
+		config.Protocol = query.Get("scheme")
+		config.Parameters = map[string]string{}
+		for k, v := range query {
+			config.Parameters[k] = v[0]
+		}
+		guac.AddConn(config.Parameters)
 	}
-
+	if guac.GetSetting().Guacd.Override && query.Get("guacd") != "" {
+		guacdAddress = query.Get("guacd")
+	}
 	var err error
 	if query.Get("width") != "" {
 		config.OptimalScreenHeight, err = strconv.Atoi(query.Get("width"))
@@ -116,7 +119,8 @@ func DemoDoConnect(request *http.Request) (guac.Tunnel, error) {
 	config.AudioMimetypes = []string{"audio/L16", "rate=44100", "channels=2"}
 
 	logrus.Debug("Connecting to guacd")
-	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:4822")
+
+	addr, err := net.ResolveTCPAddr("tcp", guacdAddress)
 
 	conn, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
@@ -126,7 +130,7 @@ func DemoDoConnect(request *http.Request) (guac.Tunnel, error) {
 
 	stream := guac.NewStream(conn, guac.SocketTimeout)
 
-	logrus.Debug("Connected to guacd")
+	logrus.Debugf("Connected to guacd %s", guacdAddress)
 	if request.URL.Query().Get("uuid") != "" {
 		config.ConnectionID = request.URL.Query().Get("uuid")
 	}

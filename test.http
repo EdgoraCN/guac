@@ -1,0 +1,36 @@
+GET http://127.0.0.1:4567
+
+###
+
+GET http://127.0.0.1:4567/config
+
+### 
+GET http://127.0.0.1:4567/config?ids=all
+
+### 
+POST http://127.0.0.1:4567/config
+
+{
+  "hostname": "192.168.1.1",
+  "id": "ssh-192.168.1.1-22-test",
+  "ignore-cert": "true",
+  "password": "111222",
+  "port": "22",
+  "scheme": "ssh",
+  "username": "test"
+}
+
+### 
+GET http://127.0.0.1:4567/config?id=ssh-192.168.1.1-22-test
+
+###
+POST http://127.0.0.1:4567/config
+
+{
+  "hostname": "192.168.1.1",
+  "ignore-cert": "true",
+  "password": "55551",
+  "port": "22",
+  "scheme": "ssh",
+  "username": "test"
+}
