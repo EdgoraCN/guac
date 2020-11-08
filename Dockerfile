@@ -27,6 +27,7 @@ RUN apk update && apk add  --no-cache  curl bash
 
 ENV GUACD guacd:4822
 ENV CONFIG_PATH /app/config.yaml
+ENV LOG_LEVEL INFO
 
 COPY --from=builder /src/guac/config.yaml /app/config.yaml
 COPY --from=builder /src/guac/guac /app/guac

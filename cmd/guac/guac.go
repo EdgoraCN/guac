@@ -13,8 +13,7 @@ import (
 )
 
 func main() {
-	logrus.SetLevel(logrus.DebugLevel)
-
+	logrus.SetLevel(guac.GetLogLevel())
 	servlet := guac.NewServer(DemoDoConnect)
 	authServlet := guac.NewAuthManager(servlet)
 	wsServer := guac.NewWebsocketServer(DemoDoConnect)

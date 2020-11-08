@@ -1,6 +1,8 @@
 guacd:
   address: 127.0.0.1:4822
   override: true
+log:
+  level: INFO
 server:
   api:
     ids: true
@@ -28,3 +30,4 @@ conns:
   port: "22"
   scheme: ssh
   username: root
+  

@@ -85,9 +85,34 @@ func GetLocalUser(r *http.Request) string {
 
 // Auth do auth
 func Auth(w http.ResponseWriter, r *http.Request, f func(http.ResponseWriter, *http.Request)) {
+
 	if GetSetting().Server.Auth.Basic.Username == "" && GetSetting().Server.Auth.Header.Name == "" {
 		f(w, r)
 		return
+	}
+	if logger.IsLevelEnabled(logger.TraceLevel) {
+		for k, v := range r.Header {
+			logger.Debugf("Header field:%s=%s\n", k, v)
+		}
+		logger.Tracef("GetSetting().Server.Auth.Header.Name=%s", GetSetting().Server.Auth.Header.Name)
+		logger.Tracef("r.Header.Get(GetSetting().Server.Auth.Header.Name)=%s", r.Header.Get(GetSetting().Server.Auth.Header.Name))
+	}
+
+	if GetSetting().Server.Auth.Header.Name != "" {
+		auth := r.Header.Get(GetSetting().Server.Auth.Header.Name)
+		if auth != "" {
+			if len(GetSetting().Server.Auth.Header.Values) > 0 {
+				if indexOf(GetSetting().Server.Auth.Header.Values, auth) > -1 {
+					SetLocalUser(r, auth)
+					f(w, r)
+					return
+				}
+			} else {
+				SetLocalUser(r, auth)
+				f(w, r)
+				return
+			}
+		}
 	}
 	basicAuthPrefix := "Basic "
 	// get request header
@@ -109,22 +134,6 @@ func Auth(w http.ResponseWriter, r *http.Request, f func(http.ResponseWriter, *h
 		}
 	}
 
-	if GetSetting().Server.Auth.Header.Name != "" {
-		auth := r.Header.Get(GetSetting().Server.Auth.Header.Name)
-		if auth != "" {
-			if len(GetSetting().Server.Auth.Header.Values) > 0 {
-				if indexOf(GetSetting().Server.Auth.Header.Values, auth) > -1 {
-					SetLocalUser(r, auth)
-					f(w, r)
-					return
-				}
-			} else {
-				SetLocalUser(r, auth)
-				f(w, r)
-				return
-			}
-		}
-	}
 	Restricted(w, r)
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	logger "github.com/sirupsen/logrus"
@@ -15,6 +16,7 @@ import (
 var (
 	// Create a new Setting
 	setting = NewSetting()
+	levels  = []string{"panic", "fatal", "error", "warn", "info", "debug", "trace"}
 )
 
 // Setting for guca
@@ -22,6 +24,9 @@ type Setting struct {
 	Guacd struct {
 		Address  string
 		Override bool
+	}
+	Log struct {
+		Level string
 	}
 	Server struct {
 		Api struct {
@@ -73,6 +78,21 @@ func GetGuacd() string {
 		guacd = setting.Guacd.Address
 	}
 	return guacd
+}
+
+// GetLogLevel Level
+func GetLogLevel() logrus.Level {
+	var level = "ERROR"
+	if os.Getenv("LOG_LEVEL") != "" {
+		level = os.Getenv("LOG_LEVEL")
+	} else if setting.Log.Level != "" {
+		level = setting.Log.Level
+	}
+	index := indexOf(levels, strings.ToLower(level))
+	if index == -1 {
+		index = 3
+	}
+	return logrus.AllLevels[index]
 }
 
 // NewSetting  creates a new Setting from file
