@@ -10,21 +10,21 @@ server:
     update: true
   auth:
     basic:
-      username: ""
+      username: guac
       password: guac
       realm: Guac Server
     header:
-      name: ""
+      name: X-Forwarded-User
       values:
-      - admin
-      - user
+      - guac
   static:
     path: ./static
 conns:
-- hostname: 192.168.1.1
-  id: ssh-192.168.1.1-22-user
+- access: guac
+  hostname: 192.168.1.1
+  id: ssh-192.168.1.1-22-root
   ignore-cert: "true"
   password: "111222"
   port: "22"
   scheme: ssh
-  username: user
+  username: root

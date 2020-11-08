@@ -103,9 +103,14 @@ func DemoDoConnect(request *http.Request) (guac.Tunnel, error) {
 		if connSeting != nil {
 			config.Protocol = connSeting["scheme"]
 			config.Parameters = guac.GetConn(query.Get("id"))
+			if !guac.HasAccess(request, connSeting) {
+				logrus.Debug("access is denied!")
+				return nil, &guac.AccessDenied{Name: "Connection"}
+			}
 			if connSeting["guacd"] != "" {
 				guacdAddress = connSeting["guacd"]
 			}
+
 		} else {
 			createNewSetting(config, query)
 		}
