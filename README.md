@@ -1,4 +1,4 @@
-# guac
+# guac [中文文档](https://edgora.com/#/console-remote-lite)
 
 A port of the [Apache Guacamole client](https://github.com/apache/guacamole-client) to Go. 
 

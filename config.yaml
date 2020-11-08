@@ -17,8 +17,7 @@ server:
       realm: Guac Server
     header:
       name: X-Forwarded-User
-      values:
-      - guac
+      values: []
   static:
     path: ./static
 conns:
@@ -30,4 +29,3 @@ conns:
   port: "22"
   scheme: ssh
   username: root
-  
